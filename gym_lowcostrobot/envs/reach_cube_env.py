@@ -95,8 +95,10 @@ class ReachCubeEnv(Env):
             observation_subspaces["image_top"] = spaces.Box(0, 255, shape=(240, 320, 3), dtype=np.uint8)
             self.renderer = mujoco.Renderer(self.model)
         if self.observation_mode in ["state", "both"]:
-            observation_subspaces["cube_pos"] = spaces.Box(low=-10.0, high=10.0, shape=(3,))
+            observation_subspaces["object_qpos"] = spaces.Box(low=-10.0, high=10.0, shape=(3,))
         self.observation_space = gym.spaces.Dict(observation_subspaces)
+        self.cameras = ["image_front", "image_top"]
+
 
         # Set the render utilities
         assert render_mode is None or render_mode in self.metadata["render_modes"]
@@ -233,7 +235,7 @@ class ReachCubeEnv(Env):
             self.renderer.update_scene(self.data, camera="camera_top")
             observation["image_top"] = self.renderer.render()
         if self.observation_mode in ["state", "both"]:
-            observation["cube_pos"] = self.data.qpos[:3].astype(np.float32)
+            observation["object_qpos"] = self.data.qpos[:3].astype(np.float32)
         return observation
 
     def reset(self, seed=None, options=None):

@@ -14,7 +14,7 @@ def displace_object(square_size=0.15, invert_y=False, origin_pos=[0, 0.1]):
     return env.data.qpos[:3]
 
 # Create the environment
-env = gym.make("ReachCube-v0", render_mode="human", action_mode="ee")
+env = gym.make("LiftCube-v0", render_mode="human", action_mode="ee")
 
 # Reset the environment
 observation, info = env.reset()
@@ -30,11 +30,12 @@ for i in range(10000):
     # action[:3] = [0.03390873, 0.22571199, 0.14506643]
     action[3] = -1.5
 
-    # Step the environment
-    observation, reward, terminted, truncated, info = env.step(action)
+
+    # # Step the environment
+    observation, reward, terminated, truncated, info = env.step(action)
 
     # Reset the environment if it's done
-    if terminted or truncated:
+    if terminated or truncated:
         observation, info = env.reset()
 
 # Close the environment

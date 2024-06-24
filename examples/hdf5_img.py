@@ -8,9 +8,9 @@ import tqdm
 if __name__ == "__main__":
     # Parse command line arguments
     parser = argparse.ArgumentParser(description="Trace video from HDF5 trace file")
-    parser.add_argument("--file_path", type=str, default="data/reach-episode-0.hdf5", help="Path to HDF5 file")
-    parser.add_argument("--camera_id", type=str, default="observations/images/front", help="Camera ID")
-    parser.add_argument("--save_file", type=str, default="movie.mp4", help="Path to save the video file")
+    parser.add_argument("--file_path", type=str, default="data/episode_1.hdf5", help="Path to HDF5 file")
+    parser.add_argument("--camera_id", type=str, default="observations/images/camera_top", help="Camera ID")
+    parser.add_argument("--save_file", type=str, default="data/movie_top.mp4", help="Path to save the video file")
     args = parser.parse_args()
 
     # Access the specified HDF5 file

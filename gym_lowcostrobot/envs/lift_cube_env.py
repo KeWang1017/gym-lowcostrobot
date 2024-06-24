@@ -72,7 +72,7 @@ class LiftCubeEnv(Env):
     - `render_mode (str)`: the render mode, can be "human" or "rgb_array", default is None.
     """
 
-    metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 200}
+    metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 50}
 
     def __init__(self, observation_mode="image", action_mode="joint", render_mode=None):
         # Load the MuJoCo model and data
@@ -83,6 +83,7 @@ class LiftCubeEnv(Env):
         self.action_mode = action_mode
         action_shape = {"joint": 6, "ee": 4}[action_mode]
         self.action_space = spaces.Box(low=-1.0, high=1.0, shape=(action_shape,), dtype=np.float32)
+        self.done = False
 
         # Set the observations space
         self.observation_mode = observation_mode
@@ -95,9 +96,18 @@ class LiftCubeEnv(Env):
             observation_subspaces["image_top"] = spaces.Box(0, 255, shape=(240, 320, 3), dtype=np.uint8)
             self.renderer = mujoco.Renderer(self.model)
         if self.observation_mode in ["state", "both"]:
-            observation_subspaces["cube_pos"] = spaces.Box(low=-10.0, high=10.0, shape=(3,))
+            observation_subspaces["object_qpos"] = spaces.Box(low=-10.0, high=10.0, shape=(3,))
         self.observation_space = gym.spaces.Dict(observation_subspaces)
 
+        self.step_idx = 0
+        # information dict
+        self.info = {
+            "step": self.step_idx,
+            "is_success": False,
+            "timestamp": 0,
+        }
+        self.cameras = ["image_front", "image_top"]
+        self.control_freq = 50
         # Set the render utilities
         assert render_mode is None or render_mode in self.metadata["render_modes"]
         self.render_mode = render_mode
@@ -109,9 +119,8 @@ class LiftCubeEnv(Env):
             self.rgb_array_renderer = mujoco.Renderer(self.model, height=640, width=640)
 
         # Set additional utils
-        self.done = False # termination flag
-        self.success = False # success flag
         self.threshold_height = 0.5
+        self.episode_length = 200
         self.cube_low = np.array([-0.15, 0.10, 0.015])
         self.cube_high = np.array([0.15, 0.25, 0.015])
         self.target_low = np.array([-3.14159, -1.5708, -1.48353, -1.91986, -2.96706, -1.74533])
@@ -142,7 +151,7 @@ class LiftCubeEnv(Env):
             raise ValueError(f"Body name '{joint_name}' not found in the model.")
         
         ERROR_TOLERANCE = 1e-2
-        MAX_ITERATIONS = 10
+        MAX_ITERATIONS = 5
         i = 0
         # Get the current end effector position
         ee_pos = self.data.xpos[joint_id]
@@ -181,11 +190,11 @@ class LiftCubeEnv(Env):
             i += 1
         q_target_pos = self.data.qpos[7:13].copy()
         self.data.qpos[7:13] = q_pos
-        if i == MAX_ITERATIONS:
-            print("Inverse kinematics did not converge")
-            print(f"Error: {error}")
-        else:
-            print(f"Inverse kinematics converged in {i} iterations")
+        # if i == MAX_ITERATIONS:
+        #     print("Inverse kinematics did not converge")
+        #     # print(f"Error: {error}")
+        # else:
+        #     print(f"Inverse kinematics converged in {i} iterations")
         return q_target_pos
     
 
@@ -212,14 +221,13 @@ class LiftCubeEnv(Env):
             target_qpos = action * (self.target_high - self.target_low) / 2 + self.q0
         else:
             raise ValueError("Invalid action mode, must be 'ee' or 'joint'")
-
-        # Set the target position
-        self.data.ctrl = target_qpos
-
-        # Step the simulation forward
-        mujoco.mj_step(self.model, self.data)
-        if self.render_mode == "human":
-            self.viewer.sync()
+        for i in range(int(200 / self.control_freq)):
+            # Set the target position
+            self.data.ctrl = target_qpos
+            # Step the simulation forward
+            mujoco.mj_step(self.model, self.data)
+            if self.render_mode == "human":
+                self.viewer.sync()
 
     def get_observation(self):
         # qpos is [x, y, z, qw, qx, qy, qz, q1, q2, q3, q4, q5, q6, gripper]
@@ -234,7 +242,7 @@ class LiftCubeEnv(Env):
             self.renderer.update_scene(self.data, camera="camera_top")
             observation["image_top"] = self.renderer.render()
         if self.observation_mode in ["state", "both"]:
-            observation["cube_pos"] = self.data.qpos[:3].astype(np.float32)
+            observation["object_qpos"] = self.data.qpos[:3].astype(np.float32)
         return observation
 
     def reset(self, seed=None, options=None):
@@ -247,7 +255,7 @@ class LiftCubeEnv(Env):
         robot_qpos = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
         self.data.qpos[:] = np.concatenate([cube_pos, cube_rot, robot_qpos])
         self.done = False
-        self.success = False
+        self.step_idx = 0
 
         # Step the simulation
         mujoco.mj_forward(self.model, self.data)
@@ -257,6 +265,7 @@ class LiftCubeEnv(Env):
     def step(self, action):
         # Perform the action and step the simulation
         self.apply_action(action)
+        is_success = False
 
         # Get the new observation
         observation = self.get_observation()
@@ -272,14 +281,17 @@ class LiftCubeEnv(Env):
         # Compute the reward
         reward_height = cube_z - self.threshold_height
         reward_distance = -ee_to_cube
-        # reward = reward_height + reward_distance
-        reward = reward_distance
+        reward = reward_height + reward_distance
         if ee_to_cube < 0.049:
+            is_success = True
             self.done = True
-            self.success = True
-        info = {}
-        info["success"] = self.success
-        return observation, reward, self.done, False, info
+        self.info["is_success"] = is_success
+        self.step_idx += 1
+        self.info["step"] = self.step_idx
+        self.info["timestamp"] = self.step_idx / self.control_freq
+        if self.step_idx >= self.episode_length:
+            self.done = True
+        return observation, reward, self.done, False, self.info
 
     def render(self):
         if self.render_mode == "human":

@@ -31,11 +31,13 @@ class HDF5_Recorder:
 
     def start_hdf5_recorder(self, hdf5_file):
         """Starts HDF5 recorder using :class:`HDF5_Recorder`."""
-        self.close()
         self.hdf5_file = hdf5_file
         self.recorded_frames = 1
         self.recording = True
         self.episode_id += 1
+        self.lst_observations = []
+        self.lst_actions = []
+
 
     def capture_frame(self, observations, action):
         """Captures frame to video."""
@@ -50,18 +52,16 @@ class HDF5_Recorder:
         """Closes the hdf5 file."""
         if self.hdf5_file is not None:
             with h5py.File(self.hdf5_file, "w") as file:
-                file.create_dataset(
-                    "observations/images/front", data=np.stack([item["image_front"] for item in self.lst_observations])
-                )
-                file.create_dataset(
-                    "observations/images/top", data=np.stack([item["image_top"] for item in self.lst_observations])
-                )
-                file.create_dataset("observations/qpos", data=np.stack([item["arm_qpos"] for item in self.lst_observations]))
-                file.create_dataset("observations/qvel", data=np.stack([item["arm_qvel"] for item in self.lst_observations]))
-                file.create_dataset("action", data=self.lst_actions)
-        self.recorded_frames = 1
-        self.lst_observations = []
-        self.lst_actions = []
+                if self.lst_observations:
+                    file.create_dataset(
+                        "observations/images/camera_front", data=np.stack([item["image_front"] for item in self.lst_observations]),chunks=(1, 240, 320, 3),
+                    )
+                    file.create_dataset(
+                        "observations/images/camera_top", data=np.stack([item["image_top"] for item in self.lst_observations]), chunks=(1, 240, 320, 3),
+                    )
+                    file.create_dataset("observations/qpos", data=np.stack([item["arm_qpos"] for item in self.lst_observations]))
+                    file.create_dataset("observations/qvel", data=np.stack([item["arm_qvel"] for item in self.lst_observations]))
+                    file.create_dataset("action", data=self.lst_actions)
 
 
 class RecordHDF5Wrapper(gym.Wrapper):
@@ -108,7 +108,7 @@ class RecordHDF5Wrapper(gym.Wrapper):
         """Starts video recorder using :class:`video_recorder.VideoRecorder`."""
         self.close_hdf5_recorder()
 
-        video_name = f"{self.name_prefix}-episode-{self.episode_id}.hdf5"
+        video_name = f"episode_{self.episode_id}.hdf5"
         self.hdf5_recorder.start_hdf5_recorder(hdf5_file=os.path.join(self.hdf5_folder, video_name))
         self.recording = True
         self.episode_id += 1

@@ -1,5 +1,5 @@
 <mujoco model="bd1 scene">
-	<option timestep="0.005" o_solimp=".89 .91 .01 0.5 2" o_solref=".01 1" />
+	<option timestep="0.005"/>
 
 	<compiler angle="radian" autolimits="true" convexhull="false"/>
 
@@ -38,12 +38,12 @@
 		<body name="cube" pos="0.1 0.1 0.01">
 			<freejoint name="cube"/>
 			<inertial pos="0 0 0" mass="0.1" diaginertia="0.00001125 0.00001125 0.00001125"/>
-			<geom friction="2.0 0.8 0.8"  condim="4" pos="0 0 0" size="0.01 0.01 0.01" type="box" name="cube" rgba="0.5 0 0 1" priority="1"/>
+			<geom friction="2.0 0.8 0.8"  condim="4" pos="0 0 0" size="0.0125 0.0125 0.0125" type="box" name="cube" rgba="0.5 0 0 1" priority="1"/>
 		</body>
 
 
 		<camera name="camera_front" pos="0.049 0.888 0.317" xyaxes="-0.998 0.056 -0.000 -0.019 -0.335 0.942"/>
-		<camera name="camera_top" pos="0 0 1" euler="0 0 0" mode="fixed"/>
+		<camera name="camera_top" pos="0 0.3 1" euler="0 0 0" mode="fixed"/>
 		<camera name="camera_vizu" pos="-0.1 0.6 0.3" quat="-0.15 -0.1 0.6 1"/>
 		
 		<geom pos="0.0401555 -0.0353754 -0.0242427" type="mesh" rgba="0.647059 0.647059 0.647059 1" mesh="base"/>
@@ -105,6 +105,7 @@
 						<body name="gripper_assembly" pos="-7.44154e-06 -0.0450002 0.0133967" quat="0.5 -0.5 -0.5 -0.5">
 							<inertial pos="-0.00548595 -0.000433143 -0.0190793" quat="0.700194 0.164851 0.167361 0.674197" mass="0.0360627" diaginertia="1.3261e-05 1.231e-05 5.3532e-06"/>
 							<joint name="wrist_roll_joint" pos="0 0 0" axis="0 0 1" range="-2.96706 2.96706"  damping="0.1" actuatorfrcrange="-0.5 0.5" actuatorfrclimited="true"/>
+
 							<geom pos="-0.00075 -0.01475 -0.02" quat="0.707107 -0.707107 0 0" type="mesh" rgba="0.917647 0.917647 0.917647 1" mesh="static_side"/>
 							<geom pos="0.00755 0.01135 -0.013" quat="0.5 -0.5 0.5 0.5" type="mesh" rgba="0.647059 0.647059 0.647059 1" mesh="dc15_a01_horn_idle2_dummy"/>
 							<geom pos="0.00755 -0.00825 -0.013" quat="0.5 0.5 0.5 -0.5" type="mesh" rgba="0.615686 0.811765 0.929412 1" mesh="dc15_a01_case_m_dummy"/>

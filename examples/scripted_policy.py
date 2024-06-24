@@ -71,24 +71,15 @@ class LiftCubePolicy(BasePolicy):
     def generate_trajectory(self, init_pose, meet_pose):
         init_pose = init_pose
         meet_pose = meet_pose
-
-        # box_info = np.array(ts_first.observation['env_state'])
-        # box_xyz = box_info[:3]
-        # box_quat = box_info[3:]
-        # print(f"Generate trajectory for {box_xyz=}")
-
-        # gripper_pick_quat = Quaternion(init_mocap_pose_right[3:])
-        # gripper_pick_quat = gripper_pick_quat * Quaternion(axis=[0.0, 1.0, 0.0], degrees=-60)
-
         meet_xyz = meet_pose[:3]
 
         self.trajectory = [
             {"t": 0, "xyz": init_pose[:3], "quat": init_pose[3:], "gripper": 0}, # sleep
-            {"t": 800, "xyz": meet_xyz + np.array([0.0, 0.01, 0.075]), "quat": meet_pose[3:], "gripper": -1.5}, # approach meet position
-            {"t": 1100, "xyz": meet_xyz + np.array([0.0, 0.01, 0.02]), "quat": meet_pose[3:], "gripper": -1.5}, # move to meet position
-            {"t": 1350, "xyz": meet_xyz + np.array([0.0, 0.01, 0.02]), "quat": meet_pose[3:], "gripper": -0.25}, # close gripper
-            {"t": 1490, "xyz": meet_xyz + np.array([0.0, 0.01, 0.1]), "quat": meet_pose[3:], "gripper": -0.25}, # lift up
-            {"t": 1500, "xyz": meet_xyz + np.array([0.0, 0.01, 0.1]), "quat": meet_pose[3:], "gripper": -0.25}, # stay
+            {"t": 120, "xyz": meet_xyz + np.array([0.0, 0.01, 0.075]), "quat": meet_pose[3:], "gripper": -1.5}, # approach meet position
+            {"t": 140, "xyz": meet_xyz + np.array([0.0, 0.01, 0.02]), "quat": meet_pose[3:], "gripper": -1.5}, # move to meet position
+            {"t": 160, "xyz": meet_xyz + np.array([0.0, 0.01, 0.02]), "quat": meet_pose[3:], "gripper": -0.25}, # close gripper
+            {"t": 190, "xyz": meet_xyz + np.array([0.0, 0.01, 0.1]), "quat": meet_pose[3:], "gripper": -0.25}, # lift up
+            {"t": 200, "xyz": meet_xyz + np.array([0.0, 0.01, 0.1]), "quat": meet_pose[3:], "gripper": -0.25}, # stay
         ]
 
 
@@ -116,7 +107,7 @@ def test_policy(task_name):
         init_pose = np.concatenate([ee_pos, ee_orn])
         meet_pose = np.concatenate([cube_pos, ee_orn])
         policy = LiftCubePolicy(init_pose=init_pose, meet_pose=meet_pose)
-        episode_length = 1500
+        episode_length = 200
         for i in range(episode_length):
             action = env.action_space.sample()
             result = policy()

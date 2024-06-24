@@ -23,7 +23,10 @@ from lerobot.scripts.push_dataset_to_hub import push_meta_data_to_hub, push_vide
 from tqdm import tqdm
 
 import gym_lowcostrobot  # noqa
+from scripted_policy import LiftCubePolicy, displace_object
+import mujoco
 
+CUBE_ORIGIN_POS = [0.03390873, 0.22571199, 0.04]
 
 def process_args():
     # parse the repo_id name via command line
@@ -75,7 +78,7 @@ if __name__ == "__main__":
         os.makedirs(videos_dir, exist_ok=True)
 
     # Create the gym environment - check the kwargs in gym_real_world/gym_environment.py
-    gym_handle = "ReachCube-v0"
+    gym_handle = "LiftCube-v0"
     env = gym.make(gym_handle, disable_env_checker=True, observation_mode="both", action_mode="ee")
 
     ep_dicts = []
@@ -97,12 +100,29 @@ if __name__ == "__main__":
         obs_replay["action"] = []
 
         timestamps = []
-        start_time = time.time()
+        cube_pos = displace_object(env, square_size=0.1, invert_y=False, origin_pos=CUBE_ORIGIN_POS)
+        # cube_pos = env.unwrapped.data.qpos[:3].astype(np.float32)
+        ee_id = env.model.body("moving_side").id
+        ee_pos = env.unwrapped.data.xpos[ee_id].astype(np.float32) # default [0.03390873 0.22571199 0.14506643]
+        ee_orn = np.zeros(4, dtype=np.float64)
+        mujoco.mju_mat2Quat(ee_orn, env.unwrapped.data.xmat[ee_id])
+        # keep orientation constant
+        init_pose = np.concatenate([ee_pos, ee_orn])
+        meet_pose = np.concatenate([cube_pos, ee_orn])
+        policy = LiftCubePolicy(init_pose=init_pose, meet_pose=meet_pose)
         drop_episode = False
+        start_time = time.time()
         for _ in tqdm(range(num_frames)):
             # Apply the next action
+            # action = env.action_space.sample()
+            # observation, _, _, _, info = env.step(action=action)
             action = env.action_space.sample()
-            observation, _, _, _, info = env.step(action=action)
+            result = policy()
+            ee_pos = env.unwrapped.data.xpos[ee_id].astype(np.float32)
+            action[:3] = result[:3] - ee_pos
+            action[3] = result[7]
+            # Step the environment
+            observation, reward, terminted, truncated, info = env.step(action)
 
             # store data
             for key in observation:
@@ -110,8 +130,13 @@ if __name__ == "__main__":
             obs_replay["action"].append(copy.deepcopy(action))
 
             # TODO: add the timestamp to the info dict
-            # timestamps.append(info["timestamp"])
-            timestamps.append(time.time() - start_time)
+            timestamps.append(info["timestamp"])
+            # timestamps.append(time.time() - start_time)
+
+            # Reset the environment if it's done and start another episode
+            if terminted or truncated:
+                env.reset()
+                break
 
         os.system('spd-say "stop"')
 
@@ -138,24 +163,25 @@ if __name__ == "__main__":
                 )
             )
             action = torch.tensor(np.array(obs_replay["action"]))
-            next_done = torch.zeros(num_frames, dtype=torch.bool)
+            episode_length = len(action)
+            next_done = torch.zeros(episode_length, dtype=torch.bool)
             next_done[-1] = True
 
             ep_dict["observation.state"] = state
             ep_dict["action"] = action
-            ep_dict["episode_index"] = torch.tensor([ep_idx] * num_frames, dtype=torch.int64)
-            ep_dict["frame_index"] = torch.arange(0, num_frames, 1)
+            ep_dict["episode_index"] = torch.tensor([ep_idx] * episode_length, dtype=torch.int64)
+            ep_dict["frame_index"] = torch.arange(0, episode_length, 1)
             ep_dict["timestamp"] = torch.tensor(timestamps)
             ep_dict["next.done"] = next_done
-            ep_fps.append(num_frames / timestamps[-1])
+            ep_fps.append(episode_length / timestamps[-1])
             ep_dicts.append(ep_dict)
 
             print(f"Episode {ep_idx} done, fps: {ep_fps[-1]:.2f}")
 
             episode_data_index["from"].append(id_from)
-            episode_data_index["to"].append(id_from + num_frames if args.keep_last else id_from + num_frames - 1)
+            episode_data_index["to"].append(id_from + episode_length if args.keep_last else id_from + episode_length - 1)
 
-            id_to = id_from + num_frames if args.keep_last else id_from + num_frames - 1
+            id_to = id_from + episode_length if args.keep_last else id_from + episode_length - 1
             id_from = id_to
 
             ep_idx += 1
@@ -219,12 +245,12 @@ if __name__ == "__main__":
 
     save_meta_data(info, stats, episode_data_index, meta_data_dir)
 
-    if args.push_to_hub:
-        hf_dataset.push_to_hub(repo_id, token=True, revision="main")
-        hf_dataset.push_to_hub(repo_id, token=True, revision=revision)
+    # if args.push_to_hub:
+    hf_dataset.push_to_hub(repo_id, token=True, revision="main")
+    hf_dataset.push_to_hub(repo_id, token=True, revision=revision)
 
-        push_meta_data_to_hub(repo_id, meta_data_dir, revision="main")
-        push_meta_data_to_hub(repo_id, meta_data_dir, revision=revision)
+    push_meta_data_to_hub(repo_id, meta_data_dir, revision="main")
+    push_meta_data_to_hub(repo_id, meta_data_dir, revision=revision)
 
-        push_videos_to_hub(repo_id, videos_dir, revision="main")
-        push_videos_to_hub(repo_id, videos_dir, revision=revision)
+    push_videos_to_hub(repo_id, videos_dir, revision="main")
+    push_videos_to_hub(repo_id, videos_dir, revision=revision)
