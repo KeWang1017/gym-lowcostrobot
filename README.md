@@ -8,12 +8,14 @@ These environments are designed to facilitate robot learning research and develo
 
 https://github.com/perezjln/gym-lowcostrobot/assets/45557362/cb724171-3c0e-467f-8957-97e79eb9c852
 
+Ke Wang has modified the repo a lot to adapt the repo as a experimental ground for imitation learning. This include tested environment, scripted policy to automatically make demonstrations, save the dataset the format used by huggingface lerobot (https://github.com/huggingface/lerobot) and potentially push it to the huggingface.
+
 ### Features
 
 - **Action Definitions**: The environments support both Cartesian and Joint control, allowing for diverse tasks.
 - **State Definitions**: The state of the robot is defined using proprioception (joint position) and visual input from multiple cameras, enabling advanced perception capabilities on non-equipped environments.
 - **Rearrangement Tasks**: A set of rearrangement tasks involving single and multiple cubic objects is provided as a starting point. These tasks are designed to help users begin experimenting with and developing robotic manipulation skills.
-- **Dataset Recording**: Included is a [recording script](https://github.com/perezjln/gym-lowcostrobot/blob/main/examples/trace_lerobotdataset.py) that allows users to build datasets in the `LeRobotDataset` format. This format is defined by the [🤗 Hugging Face LeRobot library](https://github.com/huggingface/lerobot), allowing to share and mutualize experiments among users and tasks.
+- **Dataset Recording**: Included is a [recording script](https://github.com/KeWang1017/gym-lowcostrobot-leap/blob/main/examples/lerobotdataset_save.py) that allows users to build datasets in the `LeRobotDataset` format. This format is defined by the [🤗 Hugging Face LeRobot library](https://github.com/huggingface/lerobot), allowing to share and mutualize experiments among users and tasks.
 
 ### Goals
 
@@ -31,21 +33,21 @@ By leveraging these open-source tools, we believe that more individuals, researc
 To install the package, use the following command:
 
 ```bash
-pip install git+https://github.com/perezjln/gym-lowcostrobot.git
+pip install git+https://github.com/KeWang1017/gym-lowcostrobot-leap.git
 ```
 
 ## Usage
 
-### Simulation Example: PickPlaceCube-v0
+### Simulation Example: LiftCube-v0
 
-Here's a basic example of how to use the `PickPlaceCube-v0` environment in simulation:
+Here's a basic example of how to use the `LiftCube-v0` environment in simulation:
 
 ```python
 import gymnasium as gym
 import gym_lowcostrobot # Import the low-cost robot environments
 
 # Create the environment
-env = gym.make("PickPlaceCube-v0", render_mode="human")
+env = gym.make("LiftCube-v0", render_mode="human")
 
 # Reset the environment
 observation, info = env.reset()
@@ -64,6 +66,16 @@ for _ in range(1000):
 # Close the environment
 env.close()
 ```
+### Generating Demonstrations Example: LiftCube-v0
+```python 
+python examples/scripted_policy.py
+```
+
+### Saving Dataset Example: LiftCube-v0
+```python 
+python examples/lerobotdataset_save.py --repo-id KeWangRobotics/LiftCube --num-frames 200 --num-episodes 100 --fps 50
+```
+The data will be saved at `data_traces` folder.
 
 ### Real-World Interface
 
@@ -121,7 +133,6 @@ Currently, our todo list is:
 - [X] Load and replay one `LeRobotDataset` in simulation.
 - [X] Implement inverse kinematics in each environment, improvements remain very welcome.
 - [ ] Train policies with SB3
-- [ ] Implement controller interface for simulation, like lowcostrobot-leader
 - [ ] Provide reward shaping functions, get inspired from meta-world .
 - [ ] Implement the real-world interface, seemless interface with real-world observations, motor.
 - [ ] Improve the fidelity of the simulation.
