@@ -100,8 +100,8 @@ if __name__ == "__main__":
         obs_replay["action"] = []
 
         timestamps = []
-        cube_pos = displace_object(env, square_size=0.1, invert_y=False, origin_pos=CUBE_ORIGIN_POS)
-        # cube_pos = env.unwrapped.data.qpos[:3].astype(np.float32)
+        # cube_pos = displace_object(env, square_size=0.1, invert_y=False, origin_pos=CUBE_ORIGIN_POS)
+        cube_pos = env.unwrapped.data.qpos[:3].astype(np.float32)
         ee_id = env.model.body("moving_side").id
         ee_pos = env.unwrapped.data.xpos[ee_id].astype(np.float32) # default [0.03390873 0.22571199 0.14506643]
         ee_orn = np.zeros(4, dtype=np.float64)
@@ -135,6 +135,7 @@ if __name__ == "__main__":
 
             # Reset the environment if it's done and start another episode
             if terminted or truncated:
+                print("Success or not:", info["is_success"])
                 env.reset()
                 break
 
@@ -163,25 +164,31 @@ if __name__ == "__main__":
                 )
             )
             action = torch.tensor(np.array(obs_replay["action"]))
-            episode_length = len(action)
-            next_done = torch.zeros(episode_length, dtype=torch.bool)
+            # episode_length = len(action)
+            # next_done = torch.zeros(episode_length, dtype=torch.bool)
+            next_done = torch.zeros(num_frames, dtype=torch.bool)
             next_done[-1] = True
 
             ep_dict["observation.state"] = state
             ep_dict["action"] = action
-            ep_dict["episode_index"] = torch.tensor([ep_idx] * episode_length, dtype=torch.int64)
-            ep_dict["frame_index"] = torch.arange(0, episode_length, 1)
+            # ep_dict["episode_index"] = torch.tensor([ep_idx] * episode_length, dtype=torch.int64)
+            ep_dict["episode_index"] = torch.tensor([ep_idx] * num_frames, dtype=torch.int64)
+            # ep_dict["frame_index"] = torch.arange(0, episode_length, 1)
+            ep_dict["frame_index"] = torch.arange(0, num_frames, 1)
             ep_dict["timestamp"] = torch.tensor(timestamps)
             ep_dict["next.done"] = next_done
-            ep_fps.append(episode_length / timestamps[-1])
+            # ep_fps.append(episode_length / timestamps[-1])
+            ep_fps.append(num_frames / timestamps[-1])
             ep_dicts.append(ep_dict)
 
             print(f"Episode {ep_idx} done, fps: {ep_fps[-1]:.2f}")
 
             episode_data_index["from"].append(id_from)
-            episode_data_index["to"].append(id_from + episode_length if args.keep_last else id_from + episode_length - 1)
+            # episode_data_index["to"].append(id_from + episode_length if args.keep_last else id_from + episode_length - 1)
+            episode_data_index["to"].append(id_from + num_frames if args.keep_last else id_from + num_frames - 1)
 
-            id_to = id_from + episode_length if args.keep_last else id_from + episode_length - 1
+            # id_to = id_from + episode_length if args.keep_last else id_from + episode_length - 1
+            id_to = id_from + num_frames if args.keep_last else id_from + num_frames - 1
             id_from = id_to
 
             ep_idx += 1

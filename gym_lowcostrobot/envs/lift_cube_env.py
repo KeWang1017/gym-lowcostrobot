@@ -8,6 +8,16 @@ from gymnasium import Env, spaces
 
 from gym_lowcostrobot import ASSETS_PATH
 
+def displace_object(square_size=0.15, invert_y=False, origin_pos=[0, 0, 0]):
+    ### Sample a position in a square in front of the robot
+    if not invert_y:
+        x = np.random.uniform(origin_pos[0] - square_size / 2, origin_pos[0] + square_size / 2)
+        y = np.random.uniform(origin_pos[1] - square_size / 2, origin_pos[1] + square_size / 2)
+    else:
+        x = np.random.uniform(origin_pos[0] + square_size / 2, origin_pos[0] - square_size / 2)
+        y = np.random.uniform(origin_pos[1] + square_size / 2, origin_pos[1] - square_size / 2)
+    # env.data.qpos[:3] = np.array([x, y, origin_pos[2]])
+    return np.array([x, y, origin_pos[2]])
 
 class LiftCubeEnv(Env):
     """
@@ -84,6 +94,7 @@ class LiftCubeEnv(Env):
         action_shape = {"joint": 6, "ee": 4}[action_mode]
         self.action_space = spaces.Box(low=-1.0, high=1.0, shape=(action_shape,), dtype=np.float32)
         self.done = False
+        self.timeout = False
 
         # Set the observations space
         self.observation_mode = observation_mode
@@ -127,6 +138,8 @@ class LiftCubeEnv(Env):
         self.target_high = np.array([3.14159, 1.22173, 1.74533, 1.91986, 2.96706, 0.0523599])
         self.q0 = (self.target_high + self.target_low) / 2 # home position
         self.q0[3] += 1.57
+        self.cube_origin_pos = [0.03390873, 0.22571199, 0.04]
+
 
     def inverse_kinematics(self, ee_target_pos, step=0.2, joint_name="moving_side", nb_dof=6, regularization=1e-6, home_position=None, nullspace_weight=1.):
         """
@@ -250,11 +263,13 @@ class LiftCubeEnv(Env):
         super().reset(seed=seed, options=options)
 
         # Reset the robot to the initial position and sample the cube position
-        cube_pos = self.np_random.uniform(self.cube_low, self.cube_high)
+        # cube_pos = self.np_random.uniform(self.cube_low, self.cube_high)
+        cube_pos = displace_object(square_size=0.1, invert_y=False, origin_pos=self.cube_origin_pos)
         cube_rot = np.array([1.0, 0.0, 0.0, 0.0])
         robot_qpos = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
         self.data.qpos[:] = np.concatenate([cube_pos, cube_rot, robot_qpos])
         self.done = False
+        self.timeout = False
         self.step_idx = 0
 
         # Step the simulation
@@ -276,13 +291,13 @@ class LiftCubeEnv(Env):
         ee_id = self.model.body("moving_side").id
         ee_pos = self.data.xpos[ee_id]
         ee_to_cube = np.linalg.norm(ee_pos - cube_pos)
-        print(f"Cube position: {cube_pos}, EE position: {ee_pos}, Distance: {ee_to_cube}")
+        # print(f"Cube position: {cube_pos}, EE position: {ee_pos}, Distance: {ee_to_cube}")
 
         # Compute the reward
         reward_height = cube_z - self.threshold_height
         reward_distance = -ee_to_cube
         reward = reward_height + reward_distance
-        if ee_to_cube < 0.049:
+        if ee_to_cube < 0.05:
             is_success = True
             self.done = True
         self.info["is_success"] = is_success
@@ -290,8 +305,8 @@ class LiftCubeEnv(Env):
         self.info["step"] = self.step_idx
         self.info["timestamp"] = self.step_idx / self.control_freq
         if self.step_idx >= self.episode_length:
-            self.done = True
-        return observation, reward, self.done, False, self.info
+            self.timeout = True
+        return observation, reward, False, self.timeout, self.info
 
     def render(self):
         if self.render_mode == "human":

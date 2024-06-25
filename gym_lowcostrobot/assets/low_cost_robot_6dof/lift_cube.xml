@@ -1,5 +1,5 @@
 <mujoco model="bd1 scene">
-	<option timestep="0.005"/>
+	<option timestep="0.005" o_solimp=".89 .91 .01 0.5 2" o_solref=".08 0.25" />
 
 	<compiler angle="radian" autolimits="true" convexhull="false"/>
 

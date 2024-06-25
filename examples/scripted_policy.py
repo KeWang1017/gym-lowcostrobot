@@ -75,11 +75,11 @@ class LiftCubePolicy(BasePolicy):
 
         self.trajectory = [
             {"t": 0, "xyz": init_pose[:3], "quat": init_pose[3:], "gripper": 0}, # sleep
-            {"t": 120, "xyz": meet_xyz + np.array([0.0, 0.01, 0.075]), "quat": meet_pose[3:], "gripper": -1.5}, # approach meet position
-            {"t": 140, "xyz": meet_xyz + np.array([0.0, 0.01, 0.02]), "quat": meet_pose[3:], "gripper": -1.5}, # move to meet position
-            {"t": 160, "xyz": meet_xyz + np.array([0.0, 0.01, 0.02]), "quat": meet_pose[3:], "gripper": -0.25}, # close gripper
-            {"t": 190, "xyz": meet_xyz + np.array([0.0, 0.01, 0.1]), "quat": meet_pose[3:], "gripper": -0.25}, # lift up
-            {"t": 200, "xyz": meet_xyz + np.array([0.0, 0.01, 0.1]), "quat": meet_pose[3:], "gripper": -0.25}, # stay
+            {"t": 150, "xyz": meet_xyz + np.array([0.0, 0.01, 0.075]), "quat": meet_pose[3:], "gripper": -1.5}, # approach meet position
+            {"t": 200, "xyz": meet_xyz + np.array([0.0, 0.01, 0.02]), "quat": meet_pose[3:], "gripper": -1.5}, # move to meet position
+            # {"t": 250, "xyz": meet_xyz + np.array([0.0, 0.01, 0.02]), "quat": meet_pose[3:], "gripper": -1.0}, # close gripper
+            # {"t": 260, "xyz": meet_xyz + np.array([0.0, 0.01, 0.1]), "quat": meet_pose[3:], "gripper": -0.5}, # lift up
+            # {"t": 270, "xyz": meet_xyz + np.array([0.0, 0.01, 0.1]), "quat": meet_pose[3:], "gripper": -0.5}, # stay
         ]
 
 
@@ -97,8 +97,8 @@ def test_policy(task_name):
 
     for episode_idx in range(NUM_EPISODES):
         observation, info = env.reset()
-        cube_pos = displace_object(env, square_size=0.1, invert_y=False, origin_pos=cube_origin_pos)
-        # cube_pos = env.unwrapped.data.qpos[:3].astype(np.float32)
+        # cube_pos = displace_object(env, square_size=0.1, invert_y=False, origin_pos=cube_origin_pos)
+        cube_pos = env.unwrapped.data.qpos[:3].astype(np.float32)
         ee_id = env.model.body("moving_side").id
         ee_pos = env.unwrapped.data.xpos[ee_id].astype(np.float32) # default [0.03390873 0.22571199 0.14506643]
         ee_orn = np.zeros(4, dtype=np.float64)
@@ -119,6 +119,7 @@ def test_policy(task_name):
 
             # Reset the environment if it's done
             if terminted or truncated:
+                print("Success or not:", info["is_success"])
                 observation, info = env.reset()
                 break
 
