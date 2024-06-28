@@ -79,7 +79,7 @@ if __name__ == "__main__":
 
     # Create the gym environment - check the kwargs in gym_real_world/gym_environment.py
     gym_handle = "LiftCube-v0"
-    env = gym.make(gym_handle, disable_env_checker=True, observation_mode="both", action_mode="ee")
+    env = gym.make(gym_handle, disable_env_checker=True, observation_mode="both", action_mode="ee", render_mode="rgb_array")
 
     ep_dicts = []
     episode_data_index = {"from": [], "to": []}
@@ -93,7 +93,7 @@ if __name__ == "__main__":
         # bring the follower to the leader and start camera
         env.reset()
 
-        os.system(f'spd-say "go {ep_idx}"')
+        # os.system(f'spd-say "go {ep_idx}"')
 
         # init buffers
         obs_replay = {k: [] for k in env.observation_space}
@@ -139,10 +139,10 @@ if __name__ == "__main__":
                 env.reset()
                 break
 
-        os.system('spd-say "stop"')
+        # os.system('spd-say "stop"')
 
         if not drop_episode:
-            os.system(f'spd-say "saving episode {ep_idx}"')
+            # os.system(f'spd-say "saving episode {ep_idx}"')
             ep_dict = {}
 
             # store images in png and create the video
