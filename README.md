@@ -73,9 +73,9 @@ python examples/scripted_policy.py
 
 ### Saving Dataset Example: LiftCube-v0
 ```python 
-python examples/lerobotdataset_save.py --repo-id KeWangRobotics/LiftCube --num-frames 200 --num-episodes 100 --fps 50
+python examples/lerobotdataset_save.py --repo-id KeWangRobotics/LiftCube --num-frames 200 --num-episodes 100 --fps 50 --keep-last
 ```
-The data will be saved at `data_traces` folder.
+The data will be saved at `data_traces` folder. Please pay attention to the argument `keep-last`, it will change the episode index ranges. 
 
 ### Real-World Interface
 
