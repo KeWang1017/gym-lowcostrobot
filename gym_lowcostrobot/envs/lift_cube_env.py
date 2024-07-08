@@ -99,8 +99,10 @@ class LiftCubeEnv(Env):
         # Set the observations space
         self.observation_mode = observation_mode
         observation_subspaces = {
-            "arm_qpos": spaces.Box(low=-np.pi, high=np.pi, shape=(6,)),
-            "arm_qvel": spaces.Box(low=-10.0, high=10.0, shape=(6,)),
+            # "arm_qpos": spaces.Box(low=-np.pi, high=np.pi, shape=(6,)),
+            # "arm_qvel": spaces.Box(low=-10.0, high=10.0, shape=(6,)),
+            "ee_pos": spaces.Box(low=-10, high=10, shape=(3,)),
+            "gripper_qpos": spaces.Box(low=-np.pi, high=np.pi, shape=(1,)),
         }
         if self.observation_mode in ["image", "both"]:
             observation_subspaces["image_front"] = spaces.Box(0, 255, shape=(240, 320, 3), dtype=np.uint8)
@@ -245,9 +247,12 @@ class LiftCubeEnv(Env):
     def get_observation(self):
         # qpos is [x, y, z, qw, qx, qy, qz, q1, q2, q3, q4, q5, q6, gripper]
         # qvel is [vx, vy, vz, wx, wy, wz, dq1, dq2, dq3, dq4, dq5, dq6, dgripper]
+        ee_id = self.model.body("moving_side").id
         observation = {
-            "arm_qpos": self.data.qpos[7:13].astype(np.float32),
-            "arm_qvel": self.data.qvel[6:12].astype(np.float32),
+            # "arm_qpos": self.data.qpos[7:13].astype(np.float32),
+            # "arm_qvel": self.data.qvel[6:12].astype(np.float32),
+            "ee_pos": self.data.xpos[ee_id].astype(np.float32),
+            "gripper_qpos": np.array([self.data.qpos[12].astype(np.float32)])
         }
         if self.observation_mode in ["image", "both"]:
             self.renderer.update_scene(self.data, camera="camera_front")

@@ -158,8 +158,12 @@ if __name__ == "__main__":
                 ep_dict[f"observation.{img_key}"] = [{"path": f"videos/{fname}", "timestamp": tstp} for tstp in timestamps]
 
             state = torch.tensor(
+                # np.concatenate(
+                #     [np.array(obs_replay["arm_qpos"]), np.array(obs_replay["arm_qvel"]), np.array(obs_replay["object_qpos"])],
+                #     axis=1,
+                # )
                 np.concatenate(
-                    [np.array(obs_replay["arm_qpos"]), np.array(obs_replay["arm_qvel"]), np.array(obs_replay["object_qpos"])],
+                    [np.array(obs_replay["ee_pos"]), np.array(obs_replay["gripper_qpos"]), np.array(obs_replay["object_qpos"])],
                     axis=1,
                 )
             )

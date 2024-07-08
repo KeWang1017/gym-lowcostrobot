@@ -87,7 +87,7 @@ def test_policy(task_name):
 
     # setup the environment
     if 'LiftCube' in task_name:
-        env = gym.make("LiftCube-v0", render_mode="human", action_mode="ee")
+        env = gym.make("LiftCube-v0", render_mode="human", action_mode="ee", observation_mode="both")
     # other tasks can be added here
     else:
         raise NotImplementedError
